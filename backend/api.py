@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Flight Finder API",
+    title="Agentic Travel API",
     description="API for searching flights using natural language queries",
     version="1.0.0",
 )
@@ -42,7 +42,7 @@ class FlightSearchResponse(BaseModel):
 @app.get("/")
 async def root():
     """Health check endpoint."""
-    return {"message": "Flight Finder API is running"}
+    return {"message": "Agentic Travel API is running"}
 
 
 @app.post("/search", response_model=FlightSearchResponse)

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Scripts for running Flight Finder backend and frontend.
+Scripts for running backend and frontend.
 """
 
-import os
 import subprocess
 import sys
 import uvicorn

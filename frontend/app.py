@@ -4,7 +4,7 @@ import time
 
 # Configure the page
 st.set_page_config(
-    page_title="Flight Finder",
+    page_title="Agentic Travel",
     page_icon="✈️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -44,7 +44,7 @@ def search_flights(query: str):
 
 def main():
     # Header
-    st.title("✈️ Flight Finder")
+    st.title("✈️ Agentic Travel")
     st.markdown("Find flights using natural language queries")
 
     # Check API status

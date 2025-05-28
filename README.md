@@ -1,4 +1,4 @@
-# ✈️ Flight Finder
+# ✈️ Agentic Travel
 
 A flight search application powered by AI that allows you to find flights using natural language queries.
 
