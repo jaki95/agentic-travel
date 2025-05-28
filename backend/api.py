@@ -69,7 +69,7 @@ async def search_flights(request: FlightSearchRequest):
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring."""
-    return {"status": "healthy", "service": "flight-finder-api"}
+    return {"status": "healthy", "service": "agentic-travel-api"}
 
 
 if __name__ == "__main__":

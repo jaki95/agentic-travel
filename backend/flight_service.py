@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.tools.mcp import MCPTools
@@ -49,8 +50,11 @@ class FlightService:
                     "4. Restart the backend server"
                 )
 
+            # Run the MCP server directly with Python instead of using fastmcp
+            python_cmd = f"uv run python {mcp_server_path}"
+
             async with MCPTools(
-                f"fastmcp run {mcp_server_path}", timeout_seconds=30.0
+                python_cmd, timeout_seconds=30.0
             ) as mcp_tools:
                 agent = Agent(
                     model=OpenAIChat(id="gpt-4o-mini", api_key=self.api_key),

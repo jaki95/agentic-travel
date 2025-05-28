@@ -104,8 +104,8 @@ def setup_mcp_server():
 
 
 def run_backend():
-    """Run the Flight Finder backend API server."""
-    print("🚀 Starting Flight Finder Backend API...")
+    """Run the Agentic Travel backend API server."""
+    print("🚀 Starting Agentic Travel Backend API...")
     print("📍 API will be available at: http://localhost:8000")
     print("📖 API documentation at: http://localhost:8000/docs")
     print("🔄 Auto-reload enabled for development")
@@ -127,8 +127,8 @@ def run_backend():
 
 
 def run_frontend():
-    """Run the Flight Finder Streamlit frontend."""
-    print("🚀 Starting Flight Finder Frontend...")
+    """Run the Agentic Travel Streamlit frontend."""
+    print("🚀 Starting Agentic Travel Frontend...")
     print("📍 Frontend will be available at: http://localhost:8501")
     print("🔄 Auto-reload enabled for development")
     print("-" * 50)
