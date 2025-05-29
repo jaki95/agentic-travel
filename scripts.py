@@ -16,7 +16,11 @@ def run_command(cmd, timeout=30, silent=False):
             cmd, capture_output=True, text=True, timeout=timeout, check=True
         )
         return True
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+    except (
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+        subprocess.TimeoutExpired,
+    ):
         if not silent:
             print(f"❌ Command failed: {' '.join(cmd)}")
         return False
@@ -26,7 +30,9 @@ def check_and_install_uv():
     """Ensure uv package manager is available."""
     if not run_command(["uv", "--version"], silent=True):
         print("❌ uv package manager not found")
-        print("   Please install uv: https://docs.astral.sh/uv/getting-started/installation/")
+        print(
+            "   Please install uv: https://docs.astral.sh/uv/getting-started/installation/"
+        )
         return False
     return True
 
@@ -34,11 +40,11 @@ def check_and_install_uv():
 def setup_dev_dependencies():
     """Install development dependencies if needed."""
     print("🔍 Checking dev dependencies...")
-    
+
     if run_command(["fastmcp", "--version"], silent=True):
         print("✅ Dev dependencies available")
         return True
-    
+
     print("📦 Installing dev dependencies...")
     if run_command(["uv", "sync", "--dev"]):
         print("✅ Dev dependencies installed")
@@ -57,7 +63,9 @@ def check_mcp_server():
     if not mcp_path.exists():
         print("❌ Google Flights MCP Server directory not found")
         print(f"   Expected: {mcp_path.absolute()}")
-        print("   Please clone: git clone <repository-url> ../Google-Flights-MCP-Server")
+        print(
+            "   Please clone: git clone <repository-url> ../Google-Flights-MCP-Server"
+        )
         return False
 
     if not server_file.exists():
@@ -72,25 +80,27 @@ def install_mcp_dependencies():
     """Install MCP server dependencies."""
     project_root = Path(__file__).parent
     mcp_path = project_root.parent / "Google-Flights-MCP-Server"
-    
+
     print("📦 Installing MCP dependencies...")
-    
+
     # Install from requirements.txt if it exists
     requirements_file = mcp_path / "requirements.txt"
     if requirements_file.exists():
         if not run_command(["uv", "pip", "install", "-r", str(requirements_file)]):
             return False
-    
+
     # Install MCP server package if pyproject.toml exists
     pyproject_file = mcp_path / "pyproject.toml"
     if pyproject_file.exists():
         if not run_command(["uv", "pip", "install", "-e", str(mcp_path)]):
             return False
-    
+
     # Install playwright browsers
     print("📦 Installing playwright browsers...")
-    run_command(["uv", "run", "playwright", "install", "chromium"], timeout=120, silent=True)
-    
+    run_command(
+        ["uv", "run", "playwright", "install", "chromium"], timeout=120, silent=True
+    )
+
     print("✅ MCP dependencies installed")
     return True
 
@@ -99,13 +109,13 @@ def setup_mcp_server():
     """Setup and verify MCP server is ready."""
     if not check_and_install_uv():
         return False
-    
+
     if not setup_dev_dependencies():
         return False
-    
+
     if not check_mcp_server():
         return False
-    
+
     return install_mcp_dependencies()
 
 
@@ -125,11 +135,7 @@ def run_backend():
     print("-" * 40)
 
     uvicorn.run(
-        "backend.api:app", 
-        host="0.0.0.0", 
-        port=8000, 
-        reload=True, 
-        log_level="info"
+        "backend.api:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
     )
 
 
@@ -140,10 +146,18 @@ def run_frontend():
     print("-" * 40)
 
     try:
-        subprocess.run([
-            sys.executable, "-m", "streamlit", "run", "frontend/app.py",
-            "--server.port=8501", "--server.address=0.0.0.0"
-        ], check=True)
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "streamlit",
+                "run",
+                "frontend/app.py",
+                "--server.port=8501",
+                "--server.address=0.0.0.0",
+            ],
+            check=True,
+        )
     except KeyboardInterrupt:
         print("\n👋 Frontend stopped")
     except subprocess.CalledProcessError as e:

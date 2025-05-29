@@ -75,27 +75,8 @@ def main():
     # Handle search
     if search_button and query.strip():
         with st.spinner("Searching for flights... This may take up to 30 seconds."):
-            # Show a more realistic progress bar
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-
-            # Simulate progress with status updates
-            for i in range(10):
-                time.sleep(0.5)
-                progress = (i + 1) * 10
-                progress_bar.progress(progress)
-                if i < 3:
-                    status_text.text("Initializing flight search...")
-                elif i < 7:
-                    status_text.text("Connecting to flight data sources...")
-                else:
-                    status_text.text("Processing flight results...")
-
             # Perform search
             result = search_flights(query.strip())
-            progress_bar.empty()
-            status_text.empty()
-
             if result.get("success"):
                 st.success("✅ Flight search completed!")
 

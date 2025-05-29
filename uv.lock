@@ -8,6 +8,7 @@ source = { editable = "." }
 dependencies = [
     { name = "agno" },
     { name = "fastapi" },
+    { name = "pytest-asyncio" },
     { name = "python-dotenv" },
     { name = "requests" },
     { name = "streamlit" },
@@ -36,6 +37,7 @@ dev = [
 requires-dist = [
     { name = "agno", specifier = ">=1.5.5" },
     { name = "fastapi", specifier = ">=0.104.0" },
+    { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "requests", specifier = ">=2.31.0" },
     { name = "streamlit", specifier = ">=1.28.0" },

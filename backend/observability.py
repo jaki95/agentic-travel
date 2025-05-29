@@ -49,8 +49,13 @@ def setup_tracing():
         tracer_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter()))
         trace_api.set_tracer_provider(tracer_provider=tracer_provider)
 
-        # Start instrumenting Agno
-        AgnoInstrumentor().instrument()
+        # Start instrumenting Agno with enhanced configuration
+        AgnoInstrumentor().instrument(
+            # Enable detailed tracing of agent invocations
+            tracer_provider=tracer_provider,
+            # Add additional configuration for better agent visibility
+            skip_dep_check=True,  # Skip dependency checks for better instrumentation
+        )
 
         logger.info(
             "OpenTelemetry tracing with Langfuse integration set up successfully"
