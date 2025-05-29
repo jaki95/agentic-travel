@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 setup_tracing()
 tracer = get_tracer(__name__)
 
+# Global semaphore to limit concurrent MCP requests
+_mcp_semaphore = asyncio.Semaphore(2)  # Allow max 2 concurrent flight searches
+
 
 class FlightService:
     """Service for flight search operations using MCP agents."""
@@ -54,7 +57,7 @@ class FlightService:
     async def _create_mcp_tools(self, command: str) -> MCPTools:
         """Create MCP tools with the given command."""
         # Use timeout_seconds parameter for longer flight searches
-        return MCPTools(command, timeout_seconds=60.0)
+        return MCPTools(command, timeout_seconds=90.0)  # Increased for concurrent requests
 
     async def _test_mcp_server_connectivity(self, command: str) -> bool:
         """Test if the MCP server can be connected to and responds."""
@@ -125,77 +128,104 @@ class FlightService:
             ]
         )
 
-    async def _execute_agent_with_retry(self, agent: Agent, query: str, max_retries: int = 2) -> str:
-        """Execute agent with retry logic for common errors."""
-        for attempt in range(max_retries + 1):
-            try:
-                # Reduced timeout to fail faster and avoid TaskGroup issues
-                response = await asyncio.wait_for(agent.arun(query), timeout=20.0)
-                return response.content if hasattr(response, "content") else str(response)
+    async def _execute_agent_with_retry_and_semaphore(self, agent: Agent, query: str, max_retries: int = 2) -> str:
+        """Execute agent with retry logic and concurrency control for common errors."""
+        async with _mcp_semaphore:  # Limit concurrent MCP requests
+            logger.info(f"Acquired semaphore for flight search: {query[:50]}...")
             
-            except asyncio.TimeoutError:
-                if attempt < max_retries:
-                    logger.warning(f"Agent timeout on attempt {attempt + 1}, retrying...")
-                    await asyncio.sleep(1)
-                else:
-                    logger.error("Agent execution timed out after all retries")
-                    raise
-            
-            except Exception as e:
-                error_str = str(e)
-                # Handle various MCP-related errors
-                if any(keyword in error_str for keyword in ["TaskGroup", "CancelledError", "WouldBlock"]):
+            for attempt in range(max_retries + 1):
+                try:
+                    # Add small delay between concurrent requests to avoid overwhelming the server
+                    if attempt > 0:
+                        await asyncio.sleep(2 * attempt)  # Progressive delay
+                    
+                    # Increased timeout for concurrent requests
+                    response = await asyncio.wait_for(agent.arun(query), timeout=45.0)
+                    logger.info(f"Flight search completed successfully on attempt {attempt + 1}")
+                    return response.content if hasattr(response, "content") else str(response)
+                
+                except asyncio.TimeoutError:
                     if attempt < max_retries:
-                        logger.warning(f"MCP connection error on attempt {attempt + 1}, retrying: {e}")
-                        await asyncio.sleep(2)
+                        logger.warning(f"Agent timeout on attempt {attempt + 1}, retrying...")
+                        await asyncio.sleep(3)
                     else:
-                        logger.error(f"MCP connection failed after all retries: {e}")
+                        logger.error("Agent execution timed out after all retries")
                         raise
-                else:
-                    # For other errors, don't retry
-                    logger.error(f"Agent execution failed: {e}")
-                    raise
+                
+                except Exception as e:
+                    error_str = str(e)
+                    # Handle various MCP-related errors
+                    if any(keyword in error_str for keyword in ["TaskGroup", "CancelledError", "WouldBlock", "browser_lock"]):
+                        if attempt < max_retries:
+                            delay = 5 * (attempt + 1)  # Progressive delay for concurrency issues
+                            logger.warning(f"MCP concurrency error on attempt {attempt + 1}, retrying in {delay}s: {e}")
+                            await asyncio.sleep(delay)
+                        else:
+                            logger.error(f"MCP connection failed after all retries: {e}")
+                            raise
+                    else:
+                        # For other errors, don't retry
+                        logger.error(f"Agent execution failed: {e}")
+                        raise
+
+    async def _execute_structured_agent_with_retry_and_semaphore(self, agent: Agent, query: str, max_retries: int = 2) -> FlightSearchResults:
+        """Execute structured agent with retry logic and concurrency control."""
+        async with _mcp_semaphore:  # Limit concurrent MCP requests
+            logger.info(f"Acquired semaphore for structured flight search: {query[:50]}...")
+            
+            for attempt in range(max_retries + 1):
+                try:
+                    # Add small delay between concurrent requests
+                    if attempt > 0:
+                        await asyncio.sleep(2 * attempt)  # Progressive delay
+                    
+                    # Increased timeout for concurrent requests
+                    response = await asyncio.wait_for(agent.arun(query), timeout=45.0)
+                    # The agent should return a FlightSearchResults object directly
+                    if isinstance(response, FlightSearchResults):
+                        response.search_timestamp = datetime.now().isoformat()
+                        logger.info(f"Structured flight search completed successfully on attempt {attempt + 1}")
+                        return response
+                    else:
+                        # Fallback if response isn't structured
+                        return FlightSearchResults(
+                            query=query,
+                            search_timestamp=datetime.now().isoformat(),
+                            error_message="Agent did not return structured data"
+                        )
+                
+                except asyncio.TimeoutError:
+                    if attempt < max_retries:
+                        logger.warning(f"Structured agent timeout on attempt {attempt + 1}, retrying...")
+                        await asyncio.sleep(3)
+                    else:
+                        logger.error("Structured agent execution timed out after all retries")
+                        raise
+                
+                except Exception as e:
+                    error_str = str(e)
+                    # Handle various MCP-related errors
+                    if any(keyword in error_str for keyword in ["TaskGroup", "CancelledError", "WouldBlock", "browser_lock"]):
+                        if attempt < max_retries:
+                            delay = 5 * (attempt + 1)  # Progressive delay for concurrency issues
+                            logger.warning(f"MCP concurrency error on attempt {attempt + 1}, retrying in {delay}s: {e}")
+                            await asyncio.sleep(delay)
+                        else:
+                            logger.error(f"MCP connection failed after all retries: {e}")
+                            raise
+                    else:
+                        # For other errors, don't retry
+                        logger.error(f"Structured agent execution failed: {e}")
+                        raise
+
+    # Update the method names in the rest of the class
+    async def _execute_agent_with_retry(self, agent: Agent, query: str, max_retries: int = 2) -> str:
+        """Legacy method - redirects to new semaphore version."""
+        return await self._execute_agent_with_retry_and_semaphore(agent, query, max_retries)
 
     async def _execute_structured_agent_with_retry(self, agent: Agent, query: str, max_retries: int = 2) -> FlightSearchResults:
-        """Execute structured agent with retry logic."""
-        for attempt in range(max_retries + 1):
-            try:
-                # Reduced timeout to fail faster and avoid TaskGroup issues
-                response = await asyncio.wait_for(agent.arun(query), timeout=20.0)
-                # The agent should return a FlightSearchResults object directly
-                if isinstance(response, FlightSearchResults):
-                    response.search_timestamp = datetime.now().isoformat()
-                    return response
-                else:
-                    # Fallback if response isn't structured
-                    return FlightSearchResults(
-                        query=query,
-                        search_timestamp=datetime.now().isoformat(),
-                        error_message="Agent did not return structured data"
-                    )
-            
-            except asyncio.TimeoutError:
-                if attempt < max_retries:
-                    logger.warning(f"Structured agent timeout on attempt {attempt + 1}, retrying...")
-                    await asyncio.sleep(1)
-                else:
-                    logger.error("Structured agent execution timed out after all retries")
-                    raise
-            
-            except Exception as e:
-                error_str = str(e)
-                # Handle various MCP-related errors
-                if any(keyword in error_str for keyword in ["TaskGroup", "CancelledError", "WouldBlock"]):
-                    if attempt < max_retries:
-                        logger.warning(f"MCP connection error on attempt {attempt + 1}, retrying: {e}")
-                        await asyncio.sleep(2)
-                    else:
-                        logger.error(f"MCP connection failed after all retries: {e}")
-                        raise
-                else:
-                    # For other errors, don't retry
-                    logger.error(f"Structured agent execution failed: {e}")
-                    raise
+        """Legacy method - redirects to new semaphore version."""
+        return await self._execute_structured_agent_with_retry_and_semaphore(agent, query, max_retries)
 
     def _format_error(self, error: Exception) -> str:
         """Format error messages for user display."""
