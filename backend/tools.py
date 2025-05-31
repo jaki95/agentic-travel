@@ -18,38 +18,34 @@ def load_airport_codes() -> pd.DataFrame:
 
 
 @tool
-def airport_codes_lookup(airport_name: str) -> list[Airport]:
-    """Lookup the airport code for a given airport or city name."""
+def name_to_iata_code(airport_names: list[str]) -> list[Airport]:
+    """Lookup the airport iata codes for a list of airport or city names."""
 
     all_codes = load_airport_codes()
-    # Use case-insensitive partial matching to find airports containing the input text
-    matching_rows = all_codes[
-        all_codes["name"].str.contains(airport_name, case=False, na=False)
-    ]
-
-    # Filter out rows with missing IATA codes (NaN values)
-    matching_rows = matching_rows.dropna(subset=["iata_code"])
-
-    # Convert matching rows to AirportCode objects
     result = []
-    for _, row in matching_rows.iterrows():
-        result.append(Airport(name=row["name"], code=row["iata_code"]))
+    
+    for airport_name in airport_names:
+        matching_rows = all_codes[
+            all_codes["name"].str.contains(airport_name, case=False, na=False)
+        ]
+        matching_rows = matching_rows.dropna(subset=["iata_code"])
+        for _, row in matching_rows.iterrows():
+            result.append(Airport(name=row["name"], code=row["iata_code"]))
 
     return result
 
 
 @tool
-def check_code_validity(airport_code: str) -> Airport:
-    """Check if the given airport code is valid and return the corresponding airport name"""
+def iata_code_to_name(airport_codes: list[str]) -> list[Airport]:
+    """Lookup the airport names for a list of airport iata codes"""
     all_codes = load_airport_codes()
-    matching_rows = all_codes[all_codes["iata_code"] == airport_code]
-    if len(matching_rows) == 0:
-        raise ValueError(f"Invalid airport code: {airport_code}")
-    return Airport(
-        name=matching_rows["name"].iloc[0],
-        code=airport_code,
-    )
+    result = []
+    for airport_code in airport_codes:
+        matching_rows = all_codes[all_codes["iata_code"] == airport_code]
+        for _, row in matching_rows.iterrows():
+            result.append(Airport(name=row["name"], code=row["iata_code"]))
+    return result
 
 
 if __name__ == "__main__":
-    print(airport_codes_lookup("London"))
+    print(name_to_iata_code("Heathrow"))

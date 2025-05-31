@@ -2,7 +2,7 @@ from crewai import LLM, Agent, Task
 
 from backend.models.flights import FlightSearchResults
 from backend.models.search import QueryBreakdown
-from backend.tools import airport_codes_lookup, check_code_validity
+from backend.tools import name_to_iata_code, iata_code_to_name
 
 
 def create_query_analyzer_agent(llm: LLM) -> Agent:
@@ -31,11 +31,14 @@ def create_analysis_task(query: str, agent: Agent) -> Task:
                     Determine:
                     1. How many separate flight searches are needed
                     2. Origin and destination for each search
-                    3. The IATA code for the origin and destination (if not already provided in the query)
+                    3. The IATA code for the origin and destination (if the query contains a name, 
+                    lookup the code using the tools, if it contains a code use the tools to lookup the name)
                     4. Departure dates (and return dates if round trip)
                     5. Number of passengers
                     6. Whether each search is one-way or round-trip
-                    7. Whether the search is for direct flights or with stops or both
+                    7. Whether the search is for direct flights only
+                    
+                    IMPORTANT: For international flights, prefer the main international hub over the secondary airport(s).
                     
                     For example:
                     - "Flight from NYC to Paris on Dec 15" → 1 search
@@ -45,7 +48,7 @@ def create_analysis_task(query: str, agent: Agent) -> Task:
         expected_output="Structured breakdown of flight searches needed with origins, destinations, dates, and reasoning",
         agent=agent,
         output_pydantic=QueryBreakdown,
-        tools=[airport_codes_lookup, check_code_validity],
+        tools=[name_to_iata_code, iata_code_to_name],
     )
 
 
@@ -78,6 +81,9 @@ def create_search_task(agent: Agent) -> Task:
         Use the tools provided to gather raw flight options.
         Then, sort the flights by (price + duration) in ascending order.
         Return ONLY the top 10 flights as a valid JSON object that matches the expected schema exactly.
+            
+        The route_segment will be in format like "JFK→CDG", "CDG→FCO", etc.
+        
         Do not include any other output.
         """,
         expected_output="Valid JSON object containing up to 10 flights sorted by (price + duration).",

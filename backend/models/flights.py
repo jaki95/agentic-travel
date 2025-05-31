@@ -22,6 +22,8 @@ class FlightDisplayRecord(BaseModel):
     departure_time: Optional[str] = Field(None, description="Departure time")
     arrival_time: Optional[str] = Field(None, description="Arrival time")
     duration: Optional[str] = Field(None, description="Total flight duration")
+    direction: Optional[str] = Field(None, description="Flight direction for round trips: 'outbound', 'return', or None for one-way")
+    route_segment: Optional[str] = Field(None, description="Route segment identifier for multi-city trips (e.g., 'JFK→CDG', 'CDG→FCO')")
 
 
 class FlightSearchResults(BaseModel):
