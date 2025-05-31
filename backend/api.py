@@ -1,13 +1,12 @@
+import logging
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
-import logging
 
-from .flight_service import FlightService
-
-from .orchestrator import TravelOrchestrator
-from .models import TravelItinerary, FlightSearchResults
+from backend.flow import FlightSearchFlow
+from backend.models.api import FlightSearchRequest, FlightSearchResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,37 +27,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize services
-flight_service = FlightService()
-travel_orchestrator = TravelOrchestrator()
-
-
-class FlightSearchRequest(BaseModel):
-    query: str
-
-
-class TravelPlanRequest(BaseModel):
-    query: str
-
-
-class FlightSearchResponse(BaseModel):
-    results: str
-    success: bool
-    error: Optional[str] = None
-
-
-class StructuredFlightSearchResponse(BaseModel):
-    results: FlightSearchResults
-    success: bool
-    error: Optional[str] = None
-
-
-class TravelPlanResponse(BaseModel):
-    results: TravelItinerary
-    success: bool
-    error: Optional[str] = None
-
-
 @app.get("/")
 async def root():
     """Health check endpoint."""
@@ -68,90 +36,49 @@ async def root():
 @app.post("/search", response_model=FlightSearchResponse)
 async def search_flights(request: FlightSearchRequest):
     """
-    Search for flights using natural language query (single flight search, returns text).
+    Search for flights using the new CrewAI orchestrator (returns DataFrame as CSV).
+
+    This is now the main endpoint that uses the orchestrator pattern:
+    question -> multiple queries if needed -> MCP execution -> combine -> return DataFrame
 
     Example queries:
     - "Find one way flight from STN to SAW on 11 September 2025"
     - "Round trip from London to Paris next week"
+    - "Multi-city: NYC to Paris Dec 15, Paris to Rome Dec 20, Rome to NYC Dec 25"
     - "Cheapest flights from NYC to LAX in December"
     """
     try:
-        logger.info(f"Searching flights with query: {request.query}")
-        results = await flight_service.search_flights(request.query)
+        logger.info(f"Orchestrating flight search with query: {request.query}")
 
-        return FlightSearchResponse(results=results, success=True)
+        def run_flow():
+            flow = FlightSearchFlow(request.query)
+            flow.kickoff()
+            return flow.state.search_results
 
-    except Exception as e:
-        logger.error(f"Error searching flights: {str(e)}")
-        return FlightSearchResponse(results="", success=False, error=str(e))
+        with ThreadPoolExecutor() as executor:
+            results = await asyncio.get_event_loop().run_in_executor(executor, run_flow)
 
+        # Create a summary
+        total_searches = len(results)
+        total_flight_options = sum(len(result.flight_options) for result in results)
+        successful_searches = len([r for r in results if not r.error_message])
 
-@app.post("/search/structured", response_model=StructuredFlightSearchResponse)
-async def search_flights_structured(request: FlightSearchRequest):
-    """
-    Search for flights and return structured data with parsed flight information.
+        summary = f"Executed {total_searches} flight searches ({successful_searches} successful), found {total_flight_options} total flight options"
 
-    This endpoint returns JSON with structured flight data including:
-    - Parsed origins and destinations
-    - Flight options with airlines, times, prices
-    - Structured segments and routing information
-    - Metadata like search timestamp
+        # Add route information if available
+        unique_routes = set()
+        for result in results:
+            if result.origin and result.destination:
+                unique_routes.add(f"{result.origin} → {result.destination}")
 
-    Example queries:
-    - "Find one way flight from STN to SAW on 11 September 2025"
-    - "Round trip from London to Paris next week"
-    - "Cheapest flights from NYC to LAX in December"
-    """
-    try:
-        logger.info(f"Searching structured flights with query: {request.query}")
-        results = await flight_service.search_flights_structured(request.query)
+        if unique_routes:
+            summary += f" for routes: {', '.join(sorted(unique_routes))}"
 
-        return StructuredFlightSearchResponse(results=results, success=True)
+        return FlightSearchResponse(results=results, success=True, summary=summary)
 
     except Exception as e:
-        logger.error(f"Error searching structured flights: {str(e)}")
-        return StructuredFlightSearchResponse(
-            results=FlightSearchResults(query=request.query, error_message=str(e)),
-            success=False,
-            error=str(e),
-        )
-
-
-@app.post("/plan", response_model=TravelPlanResponse)
-async def plan_travel(request: TravelPlanRequest):
-    """
-    Plan complex travel itineraries using multi-agent orchestration.
-
-    This endpoint can handle complex travel requests that may require:
-    - Multiple flight searches
-    - Multi-city trips
-    - Complex itineraries
-    - Travel planning with multiple requirements
-
-    Returns structured itinerary data with recommendations.
-
-    Example queries:
-    - "I need to fly from NYC to London on March 15, then London to Paris on March 20, and back to NYC on March 25"
-    - "Plan a business trip for 3 people from San Francisco to Tokyo and Seoul, departing next month"
-    - "Find flights for a family vacation: 2 adults and 2 children from LAX to multiple European cities"
-    - "I need to visit Boston, Chicago, and Miami for work meetings next week"
-    """
-    try:
-        logger.info(f"Planning travel with orchestrator: {request.query}")
-        results = await travel_orchestrator.orchestrate_travel_search(request.query)
-
-        return TravelPlanResponse(results=results, success=True)
-
-    except Exception as e:
-        logger.error(f"Error planning travel: {str(e)}")
-        return TravelPlanResponse(
-            results=TravelItinerary(
-                original_query=request.query,
-                recommendations=f"Error occurred: {str(e)}",
-            ),
-            success=False,
-            error=str(e),
-        )
+        logger.error(f"Error in orchestrated flight search: {str(e)}")
+        return FlightSearchResponse(results=[], success=False, error=str(e))
 
 
 @app.get("/health")
