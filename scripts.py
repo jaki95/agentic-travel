@@ -39,7 +39,7 @@ def check_mcp_server():
         print("❌ Google Flights MCP Server directory not found")
         print(f"   Expected: {mcp_path.absolute()}")
         print(
-            "   Please clone: git clonegit@github.com:opspawn/Google-Flights-MCP-Server.git"
+            "   Please clone: git clone git@github.com:opspawn/Google-Flights-MCP-Server.git"
         )
         return False
 
