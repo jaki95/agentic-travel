@@ -1,6 +1,6 @@
 import requests
-
 from config import API_BASE_URL, API_TIMEOUT, HEALTH_CHECK_TIMEOUT
+
 from backend.models.api import FlightSearchResponse
 
 

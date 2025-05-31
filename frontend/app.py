@@ -1,5 +1,4 @@
 import streamlit as st
-
 from api import check_api_health, search_flights
 from utils import handle_search_results, render_suggestion_buttons
 
@@ -10,6 +9,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
 
 def main():
     """Main application function."""
@@ -57,9 +57,7 @@ def main():
     # Handle search
     if search_button:
         if st.session_state.query_text.strip():
-            with st.spinner(
-                "🤖 AI agents are searching for flights..."
-            ):
+            with st.spinner("🤖 AI agents are searching for flights..."):
                 result = search_flights(st.session_state.query_text.strip())
                 handle_search_results(result)
         else:
