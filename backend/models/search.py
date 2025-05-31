@@ -1,8 +1,15 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
 
 class SearchQuery(BaseModel):
     """Individual flight search query."""
+
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique identifier for the search query",
+    )
 
     origin: str = Field(description="Origin airport/city")
     destination: str = Field(description="Destination airport/city")

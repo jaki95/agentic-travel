@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 from typing import Optional
 
@@ -16,6 +18,9 @@ from backend.agents import (
 from backend.mcp.server import MCP_SERVER_PATH
 from backend.models.flights import FlightDisplayRecord
 from backend.models.search import QueryBreakdown
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class FlightSearchState(BaseModel):
@@ -57,39 +62,47 @@ class FlightSearchFlow(Flow[FlightSearchState]):
         self.state.query_breakdown = result.tasks_output[0].pydantic
 
     @listen(break_down_query)
-    def search_flights(self):
+    async def search_flights(self):
         server_params = self._create_mcp_server_params()
 
         with MCPServerAdapter(server_params) as tools:
             # Use the tools for flight search
             agent = create_structured_flight_agent(self.llm, tools)
-            task = create_search_task(agent)
-            crew = Crew(agents=[agent], tasks=[task], verbose=True)
-
-            # Convert SearchQuery objects to dictionaries for kickoff_for_each
-            search_inputs = [
-                {"query": search.model_dump()}
-                for search in self.state.query_breakdown.searches
+            tasks = [
+                create_search_task(agent, search_query)
+                for search_query in self.state.query_breakdown.searches
             ]
-            crew_outputs = crew.kickoff_for_each(inputs=search_inputs)
+            crews = {
+                search_query.id: Crew(agents=[agent], tasks=[task], verbose=True)
+                for search_query, task in zip(
+                    self.state.query_breakdown.searches, tasks
+                )
+            }
 
-            flight_results = []
+            result_promises = {
+                search_query.id: crews[search_query.id].kickoff_async(
+                    inputs={"query": search_query.model_dump()}
+                )
+                for search_query in self.state.query_breakdown.searches
+            }
+            results = await asyncio.gather(*result_promises.values())
 
-            for crew_output in crew_outputs:
-                try:
-                    if (
-                        hasattr(crew_output, "tasks_output")
-                        and crew_output.tasks_output
-                        and crew_output.tasks_output[0].pydantic
-                        and hasattr(crew_output.tasks_output[0].pydantic, "flights")
-                        and crew_output.tasks_output[0].pydantic.flights
-                    ):
-                        flight_results.append(crew_output.tasks_output[0].pydantic)
-                except Exception:
-                    # Silently skip failed searches
-                    continue
+            for i, result in enumerate(results, 1):
+                logger.info(f"Search {i}/{len(results)} completed")
 
-            self.state.search_results = flight_results
+            # Extract FlightSearchResults objects from crew task outputs
+            flight_search_results = []
+            for result in results:
+                if result.tasks_output and len(result.tasks_output) > 0:
+                    task_output = result.tasks_output[0]
+                    if hasattr(task_output, 'pydantic') and task_output.pydantic:
+                        flight_search_results.append(task_output.pydantic)
+                    else:
+                        logger.warning("Task output missing pydantic result")
+                else:
+                    logger.warning("No task outputs found in crew result")
+
+            self.state.search_results = flight_search_results
 
 
 if __name__ == "__main__":

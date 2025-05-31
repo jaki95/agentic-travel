@@ -74,9 +74,9 @@ def create_structured_flight_agent(llm: LLM, tools: list) -> Agent:
     )
 
 
-def create_search_task(agent: Agent) -> Task:
+def create_search_task(agent: Agent, query: str) -> Task:
     return Task(
-        description="""
+        description=f"""
         Search for flights based on the input query: {query}.
         Use the tools provided to gather raw flight options.
         Then, sort the flights by (price + duration) in ascending order.
