@@ -44,10 +44,12 @@ A flight search application powered by AI that allows you to find flights using 
 
 ## 🏗️ Architecture
 
-The application is split into two main components:
+The application consists of several components:
 
-- **Backend** (`backend/`): FastAPI-based REST API that handles flight search logic
+- **Backend** (`backend/`): FastAPI-based REST API that handles flight search logic using CrewAI multi-agent orchestration
 - **Frontend** (`frontend/`): Streamlit web application providing a user-friendly interface
+- **Data** (`data/`): Contains airport codes database for validation and lookup
+- **Scripts** (`scripts.py`): Utility scripts for running backend, frontend, and setting up MCP server
 
 ## 🔧 Development
 
@@ -63,20 +65,18 @@ The application uses a Google Flights MCP (Model Context Protocol) Server for fl
 uv run setup-mcp
 ```
 
-### Testing
 
-```bash
-# Run all tests
-uv run pytest
-
-# Run only unit tests
-uv run pytest -m "not integration"
-
-# Run with coverage
-uv run pytest --cov=backend --cov=frontend
 ```
 
 ## 📝 API Usage
+
+The backend API provides the following endpoints:
+
+### Health Check
+
+```bash
+curl "http://localhost:8000/health"
+```
 
 ### Search Flights
 
@@ -88,6 +88,9 @@ curl -X POST "http://localhost:8000/search" \
 
 ### Example Queries
 
+The AI agent can handle various natural language queries:
+
 - "Find one way flight from STN to SAW on 11 September 2025"
 - "Round trip from London to Paris next week"
+- "Multi-city: NYC to Paris Dec 15, Paris to Rome Dec 20, Rome to NYC Dec 25"
 - "Cheapest flights from NYC to LAX in December"

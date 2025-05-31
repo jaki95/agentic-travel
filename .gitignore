@@ -11,3 +11,10 @@ wheels/
 
 # Environment variables
 .env
+
+.DS_Store
+.vscode
+.cursor
+.pytest_cache
+.ruff_cache
+.zshrc
