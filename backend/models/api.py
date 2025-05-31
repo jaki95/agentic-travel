@@ -14,3 +14,4 @@ class FlightSearchResponse(BaseModel):
     success: bool
     error: Optional[str] = None
     summary: Optional[str] = None
+    duration_seconds: Optional[float] = None

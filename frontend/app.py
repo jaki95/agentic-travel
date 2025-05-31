@@ -37,6 +37,7 @@ def search_flights(query: str) -> dict:
             timeout=90,
         )
         response.raise_for_status()
+        
         return {
             "success": True,
             "results": FlightSearchResponse.model_validate(response.json()),
@@ -298,10 +299,8 @@ def render_suggestion_buttons() -> None:
 def handle_search_results(result: dict) -> None:
     """Handle and display search results."""
     if result.get("success"):
-        st.success("✅ Flight search completed!")
-        st.header("📋 Search Results")
-
         results_obj = result.get("results")
+        st.header("📋 Search Results")
 
         if results_obj and results_obj.results:
             list_of_flat_records = [
@@ -373,13 +372,6 @@ def main():
                 handle_search_results(result)
         else:
             st.warning("⚠️ Please enter a search query.")
-
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-    **About:** This application uses advanced AI agents to understand and process complex travel queries. 
-    The system can handle single flights, round trips, and complex multi-city itineraries.
-    """)
 
 
 if __name__ == "__main__":

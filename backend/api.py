@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,6 +43,8 @@ async def search_flights(request: FlightSearchRequest):
     try:
         logger.info(f"Orchestrating flight search with query: {request.query}")
 
+        now = datetime.now()
+
         def run_flow():
             flow = FlightSearchFlow(request.query)
             flow.kickoff()
@@ -64,8 +67,10 @@ async def search_flights(request: FlightSearchRequest):
         )
         successful_searches = len(state.search_results) if state.search_results else 0
 
+        duration = datetime.now() - now
+
         if total_flights > 0:
-            summary = f"Found {total_flights} flight options"
+            summary = f"Found {total_flights} flight options in {duration.total_seconds():.2f} seconds"
             # Add route information if available
             unique_routes = set(r.route for r in flight_records if r.route)
             if unique_routes:
@@ -77,7 +82,10 @@ async def search_flights(request: FlightSearchRequest):
             summary += f" (some routes had no available flights)"
 
         return FlightSearchResponse(
-            results=flight_records, success=True, summary=summary
+            results=flight_records,
+            success=True,
+            summary=summary,
+            duration_seconds=duration.total_seconds(),
         )
 
     except Exception as e:
