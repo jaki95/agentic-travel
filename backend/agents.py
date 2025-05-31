@@ -2,7 +2,7 @@ from crewai import LLM, Agent, Task
 
 from backend.models.flights import FlightSearchResults
 from backend.models.search import QueryBreakdown
-from backend.tools import name_to_iata_code, iata_code_to_name
+from backend.tools import iata_code_to_name, name_to_iata_code
 
 
 def create_query_analyzer_agent(llm: LLM) -> Agent:
