@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from backend.models.flights import FlightSearchResults
+from backend.models.flights import FlightDisplayRecord
 
 
 class FlightSearchRequest(BaseModel):
@@ -10,7 +10,7 @@ class FlightSearchRequest(BaseModel):
 
 
 class FlightSearchResponse(BaseModel):
-    results: list[FlightSearchResults]
+    results: list[FlightDisplayRecord]
     success: bool
     error: Optional[str] = None
     summary: Optional[str] = None

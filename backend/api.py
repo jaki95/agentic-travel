@@ -32,20 +32,10 @@ async def root():
     """Health check endpoint."""
     return {"message": "Agentic Travel API is running"}
 
-
 @app.post("/search", response_model=FlightSearchResponse)
 async def search_flights(request: FlightSearchRequest):
     """
-    Search for flights using the new CrewAI orchestrator (returns DataFrame as CSV).
-
-    This is now the main endpoint that uses the orchestrator pattern:
-    question -> multiple queries if needed -> MCP execution -> combine -> return DataFrame
-
-    Example queries:
-    - "Find one way flight from STN to SAW on 11 September 2025"
-    - "Round trip from London to Paris next week"
-    - "Multi-city: NYC to Paris Dec 15, Paris to Rome Dec 20, Rome to NYC Dec 25"
-    - "Cheapest flights from NYC to LAX in December"
+    Search for flights using the CrewAI orchestrator.
     """
     try:
         logger.info(f"Orchestrating flight search with query: {request.query}")
@@ -58,26 +48,28 @@ async def search_flights(request: FlightSearchRequest):
         with ThreadPoolExecutor() as executor:
             results = await asyncio.get_event_loop().run_in_executor(executor, run_flow)
 
-        # Create a summary
-        total_searches = len(results)
-        total_flight_options = sum(len(result.flight_options) for result in results)
-        successful_searches = len([r for r in results if not r.error_message])
+        # Flatten FlightSearchResults objects to FlightDisplayRecord objects
+        flight_records = []
+        if results:
+            for flight_search_result in results:
+                if hasattr(flight_search_result, 'flights'):
+                    flight_records.extend(flight_search_result.flights)
 
-        summary = f"Executed {total_searches} flight searches ({successful_searches} successful), found {total_flight_options} total flight options"
+        # Create summary
+        total_flight_options = len([r for r in flight_records if not r.error_message])
+        total_searches = len(results) if results else 0
+
+        summary = f"Found {total_flight_options} flight options from {total_searches} searches"
 
         # Add route information if available
-        unique_routes = set()
-        for result in results:
-            if result.origin and result.destination:
-                unique_routes.add(f"{result.origin} → {result.destination}")
-
+        unique_routes = set(r.route for r in flight_records if r.route)
         if unique_routes:
             summary += f" for routes: {', '.join(sorted(unique_routes))}"
 
-        return FlightSearchResponse(results=results, success=True, summary=summary)
+        return FlightSearchResponse(results=flight_records, success=True, summary=summary)
 
     except Exception as e:
-        logger.error(f"Error in orchestrated flight search: {str(e)}")
+        logger.error(f"Error in flight search: {str(e)}")
         return FlightSearchResponse(results=[], success=False, error=str(e))
 
 

@@ -13,14 +13,14 @@ from backend.agents import (
     create_search_task,
     create_structured_flight_agent,
 )
-from backend.models.flights import FlightSearchResults
 from backend.models.search import QueryBreakdown
+from backend.models.flights import FlightDisplayRecord
 
 
 class FlightSearchState(BaseModel):
     message: str = ""
     query_breakdown: Optional[QueryBreakdown] = None
-    search_results: Optional[list[FlightSearchResults]] = None
+    search_results: Optional[list[FlightDisplayRecord]] = None
 
 
 class FlightSearchFlow(Flow[FlightSearchState]):
@@ -80,20 +80,6 @@ class FlightSearchFlow(Flow[FlightSearchState]):
                     pydantic_result = crew_output.tasks_output[0].pydantic
                     if pydantic_result:
                         flight_results.append(pydantic_result)
-                    else:
-                        # If no pydantic result, create a basic error result
-                        error_result = FlightSearchResults(
-                            query="Unknown query",
-                            error_message="Failed to parse flight search result",
-                        )
-                        flight_results.append(error_result)
-                else:
-                    # Handle case where crew_output doesn't have expected structure
-                    error_result = FlightSearchResults(
-                        query="Unknown query",
-                        error_message="Invalid crew output structure",
-                    )
-                    flight_results.append(error_result)
 
             self.state.search_results = flight_results
 
