@@ -13,8 +13,9 @@ from backend.agents import (
     create_search_task,
     create_structured_flight_agent,
 )
-from backend.models.search import QueryBreakdown
+from backend.mcp.server import MCP_SERVER_PATH
 from backend.models.flights import FlightDisplayRecord
+from backend.models.search import QueryBreakdown
 
 
 class FlightSearchState(BaseModel):
@@ -42,7 +43,7 @@ class FlightSearchFlow(Flow[FlightSearchState]):
         """Create fresh MCP server parameters."""
         return StdioServerParameters(
             command="uv",
-            args=["run", "../Google-Flights-MCP-Server/server.py"],
+            args=["run", MCP_SERVER_PATH.as_posix()],
             env={"UV_PYTHON": "3.12", **os.environ},
         )
 

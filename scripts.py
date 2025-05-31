@@ -5,101 +5,14 @@ Scripts for running backend and frontend.
 
 import subprocess
 import sys
-from pathlib import Path
 
 import uvicorn
-
-
-def run_command(cmd, timeout=30, silent=False):
-    """Run a command and return success status."""
-    try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout, check=True
-        )
-        return True
-    except (
-        subprocess.CalledProcessError,
-        FileNotFoundError,
-        subprocess.TimeoutExpired,
-    ):
-        if not silent:
-            print(f"❌ Command failed: {' '.join(cmd)}")
-        return False
-
-
-def check_mcp_server():
-    """Verify MCP server directory and files exist."""
-    project_root = Path(__file__).parent
-    mcp_path = project_root.parent / "Google-Flights-MCP-Server"
-    server_file = mcp_path / "server.py"
-
-    print("🔍 Checking MCP Server...")
-
-    if not mcp_path.exists():
-        print("❌ Google Flights MCP Server directory not found")
-        print(f"   Expected: {mcp_path.absolute()}")
-        print(
-            "   Please clone: git clone git@github.com:opspawn/Google-Flights-MCP-Server.git"
-        )
-        return False
-
-    if not server_file.exists():
-        print(f"❌ server.py not found: {server_file.absolute()}")
-        return False
-
-    print("✅ MCP Server found")
-    return True
-
-
-def install_mcp_dependencies():
-    """Install MCP server dependencies."""
-    project_root = Path(__file__).parent
-    mcp_path = project_root.parent / "Google-Flights-MCP-Server"
-
-    print("📦 Installing MCP dependencies...")
-
-    # Install from requirements.txt if it exists
-    requirements_file = mcp_path / "requirements.txt"
-    if requirements_file.exists():
-        if not run_command(["uv", "pip", "install", "-r", str(requirements_file)]):
-            return False
-
-    # Install MCP server package if pyproject.toml exists
-    pyproject_file = mcp_path / "pyproject.toml"
-    if pyproject_file.exists():
-        if not run_command(["uv", "pip", "install", "-e", str(mcp_path)]):
-            return False
-
-    # Install playwright browsers
-    print("📦 Installing playwright browsers...")
-    run_command(
-        ["uv", "run", "playwright", "install", "chromium"], timeout=120, silent=True
-    )
-
-    print("✅ MCP dependencies installed")
-    return True
-
-
-def setup_mcp_server():
-    """Setup and verify MCP server is ready."""
-    if not check_mcp_server():
-        return False
-
-    return install_mcp_dependencies()
 
 
 def run_backend():
     """Run the Agentic Travel backend API server."""
     print("🚀 Starting Agentic Travel Backend API...")
     print("📍 API: http://localhost:8000")
-    print("-" * 40)
-
-    print("🔧 Setting up MCP Server...")
-    if not setup_mcp_server():
-        print("❌ MCP Server setup failed")
-        sys.exit(1)
-
-    print("✅ Setup complete!")
     print("-" * 40)
 
     uvicorn.run(

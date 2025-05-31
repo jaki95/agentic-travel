@@ -1,5 +1,5 @@
-import logging
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI
@@ -27,10 +27,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root():
     """Health check endpoint."""
     return {"message": "Agentic Travel API is running"}
+
 
 @app.post("/search", response_model=FlightSearchResponse)
 async def search_flights(request: FlightSearchRequest):
@@ -52,11 +54,11 @@ async def search_flights(request: FlightSearchRequest):
         flight_records = []
         if results:
             for flight_search_result in results:
-                if hasattr(flight_search_result, 'flights'):
+                if hasattr(flight_search_result, "flights"):
                     flight_records.extend(flight_search_result.flights)
 
         # Create summary
-        total_flight_options = len([r for r in flight_records if not r.error_message])
+        total_flight_options = len([r for r in flight_records])
         total_searches = len(results) if results else 0
 
         summary = f"Found {total_flight_options} flight options from {total_searches} searches"
@@ -66,7 +68,9 @@ async def search_flights(request: FlightSearchRequest):
         if unique_routes:
             summary += f" for routes: {', '.join(sorted(unique_routes))}"
 
-        return FlightSearchResponse(results=flight_records, success=True, summary=summary)
+        return FlightSearchResponse(
+            results=flight_records, success=True, summary=summary
+        )
 
     except Exception as e:
         logger.error(f"Error in flight search: {str(e)}")

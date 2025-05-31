@@ -4,20 +4,6 @@ A flight search application powered by AI that allows you to find flights using 
 
 ## Quick Start
 
-### Setup
-
-1. **Install dependencies**
-   ```bash
-   uv sync
-   ```
-
-2. **Clone and setup the MCP server** (required for flight search)
-   ```bash
-   # Clone the Google Flights MCP Server to the parent directory
-   cd ..
-   git clone git@github.com:opspawn/Google-Flights-MCP-Server.git
-   ```
-
 ### Running the Application
 
 1. **Start the backend API**
