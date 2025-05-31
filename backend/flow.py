@@ -15,7 +15,7 @@ from backend.agents import (
     create_search_task,
     create_structured_flight_agent,
 )
-from backend.mcp.server import MCP_SERVER_PATH
+from backend.mcp.flight_server import MCP_SERVER_PATH
 from backend.models.flights import FlightDisplayRecord
 from backend.models.search import QueryBreakdown
 
