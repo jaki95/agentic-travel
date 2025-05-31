@@ -23,7 +23,7 @@ def name_to_iata_code(airport_names: list[str]) -> list[Airport]:
 
     all_codes = load_airport_codes()
     result = []
-    
+
     for airport_name in airport_names:
         matching_rows = all_codes[
             all_codes["name"].str.contains(airport_name, case=False, na=False)

@@ -59,9 +59,11 @@ async def search_flights(request: FlightSearchRequest):
 
         # Create simple summary
         total_flights = len(flight_records)
-        total_searches = len(state.query_breakdown.searches) if state.query_breakdown else 0
+        total_searches = (
+            len(state.query_breakdown.searches) if state.query_breakdown else 0
+        )
         successful_searches = len(state.search_results) if state.search_results else 0
-        
+
         if total_flights > 0:
             summary = f"Found {total_flights} flight options"
             # Add route information if available
@@ -70,7 +72,7 @@ async def search_flights(request: FlightSearchRequest):
                 summary += f" for {', '.join(sorted(unique_routes))}"
         else:
             summary = "No flights found for your search criteria"
-            
+
         if successful_searches < total_searches:
             summary += f" (some routes had no available flights)"
 

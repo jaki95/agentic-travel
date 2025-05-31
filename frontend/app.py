@@ -60,34 +60,48 @@ def extract_numeric_prices(prices: pd.Series) -> list[float]:
     return numeric_prices
 
 
-def display_price_metrics(results: pd.DataFrame, is_round_trip: bool = False, outbound_flights: pd.DataFrame = None, return_flights: pd.DataFrame = None) -> None:
+def display_price_metrics(
+    results: pd.DataFrame,
+    is_round_trip: bool = False,
+    outbound_flights: pd.DataFrame = None,
+    return_flights: pd.DataFrame = None,
+) -> None:
     """Display price statistics if price data is available."""
     if "price" not in results.columns or not results["price"].notna().any():
         return
 
-    if is_round_trip and outbound_flights is not None and return_flights is not None and not outbound_flights.empty and not return_flights.empty:
+    if (
+        is_round_trip
+        and outbound_flights is not None
+        and return_flights is not None
+        and not outbound_flights.empty
+        and not return_flights.empty
+    ):
         # For round trips, calculate combined prices (outbound + return)
         print("🔄 Calculating round-trip combined prices...")
-        
+
         # Extract numeric prices from both outbound and return flights
         outbound_prices = extract_numeric_prices(outbound_flights["price"])
         return_prices = extract_numeric_prices(return_flights["price"])
-        
+
         if not outbound_prices or not return_prices:
             return
-            
+
         # Create all possible combinations of outbound + return prices
         combined_prices = []
         for out_price in outbound_prices:
             for ret_price in return_prices:
                 combined_prices.append(out_price + ret_price)
-        
+
         if combined_prices:
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("💰 Lowest Round-Trip", f"£{min(combined_prices):.0f}")
             with col2:
-                st.metric("📊 Average Round-Trip", f"£{sum(combined_prices) / len(combined_prices):.0f}")
+                st.metric(
+                    "📊 Average Round-Trip",
+                    f"£{sum(combined_prices) / len(combined_prices):.0f}",
+                )
             with col3:
                 st.metric("📈 Highest Round-Trip", f"£{max(combined_prices):.0f}")
     else:
@@ -106,7 +120,8 @@ def display_price_metrics(results: pd.DataFrame, is_round_trip: bool = False, ou
                 st.metric("💰 Lowest Price", f"£{min(numeric_prices):.0f}")
             with col2:
                 st.metric(
-                    "📊 Average Price", f"£{sum(numeric_prices) / len(numeric_prices):.0f}"
+                    "📊 Average Price",
+                    f"£{sum(numeric_prices) / len(numeric_prices):.0f}",
                 )
             with col3:
                 st.metric("📈 Highest Price", f"£{max(numeric_prices):.0f}")
@@ -127,63 +142,84 @@ def display_flight_results(results: pd.DataFrame, summary: str = None) -> None:
             st.write(summary)
 
         # Check for round trip flights using the direction field
-        has_outbound = 'direction' in results.columns and (results['direction'] == 'outbound').any()
-        has_return = 'direction' in results.columns and (results['direction'] == 'return').any()
+        has_outbound = (
+            "direction" in results.columns
+            and (results["direction"] == "outbound").any()
+        )
+        has_return = (
+            "direction" in results.columns and (results["direction"] == "return").any()
+        )
         is_round_trip = has_outbound and has_return
 
         # Check for multi-city flights using route_segment field
-        unique_segments = results['route_segment'].nunique() if 'route_segment' in results.columns else 1
-        is_multi_city = unique_segments > 2 or (unique_segments == 2 and not is_round_trip)
+        unique_segments = (
+            results["route_segment"].nunique()
+            if "route_segment" in results.columns
+            else 1
+        )
+        is_multi_city = unique_segments > 2 or (
+            unique_segments == 2 and not is_round_trip
+        )
 
         if is_round_trip:
             st.subheader("🔄 Round Trip Flights")
-            
+
             # Split into outbound and return flights
-            outbound_flights = results[results['direction'] == 'outbound'].copy()
-            return_flights = results[results['direction'] == 'return'].copy()
-            
+            outbound_flights = results[results["direction"] == "outbound"].copy()
+            return_flights = results[results["direction"] == "return"].copy()
+
             # Clean up airline names by removing direction markers for display
             # (Note: direction markers should no longer exist, but keeping this as safety)
             for df in [outbound_flights, return_flights]:
-                if 'airline' in df.columns:
-                    df['airline'] = df['airline'].str.replace(r'^\[OUTBOUND\]\s*', '', regex=True)
-                    df['airline'] = df['airline'].str.replace(r'^\[RETURN\]\s*', '', regex=True)
-            
+                if "airline" in df.columns:
+                    df["airline"] = df["airline"].str.replace(
+                        r"^\[OUTBOUND\]\s*", "", regex=True
+                    )
+                    df["airline"] = df["airline"].str.replace(
+                        r"^\[RETURN\]\s*", "", regex=True
+                    )
+
             # Display price metrics for round trip combinations
             display_price_metrics(results, True, outbound_flights, return_flights)
-            
+
             # Display outbound flights
             st.markdown("#### ✈️ Outbound Flights")
             display_flight_table(outbound_flights)
-            
-            # Display return flights  
+
+            # Display return flights
             st.markdown("#### 🔙 Return Flights")
             display_flight_table(return_flights)
-            
+
         elif is_multi_city:
             st.subheader("🗺️ Multi-City Trip")
-            
+
             # Group flights by route segment
-            if 'route_segment' in results.columns:
-                unique_segments = results['route_segment'].unique()
-                
+            if "route_segment" in results.columns:
+                unique_segments = results["route_segment"].unique()
+
                 # Display individual flight prices for multi-city
                 display_price_metrics(results, False)
-                
+
                 # Simple check for incomplete multi-city trips
                 expected_legs = 3  # For typical multi-city trips
                 actual_legs = len(unique_segments)
-                
+
                 if actual_legs < expected_legs:
-                    st.info(f"ℹ️ Showing {actual_legs} available leg(s) of your multi-city trip.")
-                
+                    st.info(
+                        f"ℹ️ Showing {actual_legs} available leg(s) of your multi-city trip."
+                    )
+
                 for i, segment in enumerate(unique_segments, 1):
-                    segment_flights = results[results['route_segment'] == segment].copy()
-                    
+                    segment_flights = results[
+                        results["route_segment"] == segment
+                    ].copy()
+
                     # Clean up airline names (safety measure)
-                    if 'airline' in segment_flights.columns:
-                        segment_flights['airline'] = segment_flights['airline'].str.replace(r'^\[(OUTBOUND|RETURN)\]\s*', '', regex=True)
-                    
+                    if "airline" in segment_flights.columns:
+                        segment_flights["airline"] = segment_flights[
+                            "airline"
+                        ].str.replace(r"^\[(OUTBOUND|RETURN)\]\s*", "", regex=True)
+
                     st.markdown(f"#### Leg {i}: {segment}")
                     display_flight_table(segment_flights)
             else:
@@ -205,19 +241,39 @@ def display_flight_table(results_display: pd.DataFrame) -> None:
     if results_display.empty:
         st.warning("No flights to display.")
         return
-        
+
     # Define the preferred column order and only show available columns
-    preferred_columns = ['route', 'departure_date', 'departure_time', 'arrival_time', 'duration', 'price', 'airline', 'stops']
-    available_columns = [col for col in preferred_columns if col in results_display.columns]
-    
+    preferred_columns = [
+        "route",
+        "departure_date",
+        "departure_time",
+        "arrival_time",
+        "duration",
+        "price",
+        "airline",
+        "stops",
+    ]
+    available_columns = [
+        col for col in preferred_columns if col in results_display.columns
+    ]
+
     if available_columns:
         results_to_show = results_display[available_columns]
         column_renames = {
-            'route': 'Route', 'departure_date': 'Date', 'departure_time': 'Departure',
-            'arrival_time': 'Arrival', 'duration': 'Duration', 'price': 'Price',
-            'airline': 'Airline', 'stops': 'Stops'
+            "route": "Route",
+            "departure_date": "Date",
+            "departure_time": "Departure",
+            "arrival_time": "Arrival",
+            "duration": "Duration",
+            "price": "Price",
+            "airline": "Airline",
+            "stops": "Stops",
         }
-        results_to_show = results_to_show.rename(columns={k: v for k, v in column_renames.items() if k in results_to_show.columns})
+        results_to_show = results_to_show.rename(
+            columns={
+                k: v for k, v in column_renames.items() if k in results_to_show.columns
+            }
+        )
     else:
         results_to_show = results_display
     st.dataframe(results_to_show, use_container_width=True, hide_index=True)
