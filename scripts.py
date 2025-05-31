@@ -5,8 +5,9 @@ Scripts for running backend and frontend.
 
 import subprocess
 import sys
-import uvicorn
 from pathlib import Path
+
+import uvicorn
 
 
 def run_command(cmd, timeout=30, silent=False):
@@ -24,32 +25,6 @@ def run_command(cmd, timeout=30, silent=False):
         if not silent:
             print(f"❌ Command failed: {' '.join(cmd)}")
         return False
-
-
-def check_and_install_uv():
-    """Ensure uv package manager is available."""
-    if not run_command(["uv", "--version"], silent=True):
-        print("❌ uv package manager not found")
-        print(
-            "   Please install uv: https://docs.astral.sh/uv/getting-started/installation/"
-        )
-        return False
-    return True
-
-
-def setup_dev_dependencies():
-    """Install development dependencies if needed."""
-    print("🔍 Checking dev dependencies...")
-
-    if run_command(["fastmcp", "--version"], silent=True):
-        print("✅ Dev dependencies available")
-        return True
-
-    print("📦 Installing dev dependencies...")
-    if run_command(["uv", "sync", "--dev"]):
-        print("✅ Dev dependencies installed")
-        return True
-    return False
 
 
 def check_mcp_server():
@@ -107,12 +82,6 @@ def install_mcp_dependencies():
 
 def setup_mcp_server():
     """Setup and verify MCP server is ready."""
-    if not check_and_install_uv():
-        return False
-
-    if not setup_dev_dependencies():
-        return False
-
     if not check_mcp_server():
         return False
 
@@ -123,7 +92,6 @@ def run_backend():
     """Run the Agentic Travel backend API server."""
     print("🚀 Starting Agentic Travel Backend API...")
     print("📍 API: http://localhost:8000")
-    print("📖 Docs: http://localhost:8000/docs")
     print("-" * 40)
 
     print("🔧 Setting up MCP Server...")
