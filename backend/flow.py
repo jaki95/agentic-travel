@@ -95,7 +95,7 @@ class FlightSearchFlow(Flow[FlightSearchState]):
             for result in results:
                 if result.tasks_output and len(result.tasks_output) > 0:
                     task_output = result.tasks_output[0]
-                    if hasattr(task_output, 'pydantic') and task_output.pydantic:
+                    if hasattr(task_output, "pydantic") and task_output.pydantic:
                         flight_search_results.append(task_output.pydantic)
                     else:
                         logger.warning("Task output missing pydantic result")
