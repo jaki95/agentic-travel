@@ -75,12 +75,18 @@ class FlightSearchFlow(Flow[FlightSearchState]):
 
             # Extract FlightSearchResults from CrewOutput objects
             flight_results = []
+            
             for crew_output in crew_outputs:
-                if hasattr(crew_output, "tasks_output") and crew_output.tasks_output:
-                    # Get the pydantic result from the first (and only) task
-                    pydantic_result = crew_output.tasks_output[0].pydantic
-                    if pydantic_result:
-                        flight_results.append(pydantic_result)
+                try:
+                    if (hasattr(crew_output, "tasks_output") and 
+                        crew_output.tasks_output and 
+                        crew_output.tasks_output[0].pydantic and 
+                        hasattr(crew_output.tasks_output[0].pydantic, 'flights') and 
+                        crew_output.tasks_output[0].pydantic.flights):
+                        flight_results.append(crew_output.tasks_output[0].pydantic)
+                except Exception:
+                    # Silently skip failed searches
+                    continue
 
             self.state.search_results = flight_results
 

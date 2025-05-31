@@ -45,28 +45,34 @@ async def search_flights(request: FlightSearchRequest):
         def run_flow():
             flow = FlightSearchFlow(request.query)
             flow.kickoff()
-            return flow.state.search_results
+            return flow.state
 
         with ThreadPoolExecutor() as executor:
-            results = await asyncio.get_event_loop().run_in_executor(executor, run_flow)
+            state = await asyncio.get_event_loop().run_in_executor(executor, run_flow)
 
         # Flatten FlightSearchResults objects to FlightDisplayRecord objects
         flight_records = []
-        if results:
-            for flight_search_result in results:
+        if state.search_results:
+            for flight_search_result in state.search_results:
                 if hasattr(flight_search_result, "flights"):
                     flight_records.extend(flight_search_result.flights)
 
-        # Create summary
-        total_flight_options = len([r for r in flight_records])
-        total_searches = len(results) if results else 0
-
-        summary = f"Found {total_flight_options} flight options from {total_searches} searches"
-
-        # Add route information if available
-        unique_routes = set(r.route for r in flight_records if r.route)
-        if unique_routes:
-            summary += f" for routes: {', '.join(sorted(unique_routes))}"
+        # Create simple summary
+        total_flights = len(flight_records)
+        total_searches = len(state.query_breakdown.searches) if state.query_breakdown else 0
+        successful_searches = len(state.search_results) if state.search_results else 0
+        
+        if total_flights > 0:
+            summary = f"Found {total_flights} flight options"
+            # Add route information if available
+            unique_routes = set(r.route for r in flight_records if r.route)
+            if unique_routes:
+                summary += f" for {', '.join(sorted(unique_routes))}"
+        else:
+            summary = "No flights found for your search criteria"
+            
+        if successful_searches < total_searches:
+            summary += f" (some routes had no available flights)"
 
         return FlightSearchResponse(
             results=flight_records, success=True, summary=summary
