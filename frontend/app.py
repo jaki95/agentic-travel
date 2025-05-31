@@ -37,7 +37,7 @@ def search_flights(query: str) -> dict:
             timeout=90,
         )
         response.raise_for_status()
-        
+
         return {
             "success": True,
             "results": FlightSearchResponse.model_validate(response.json()),
