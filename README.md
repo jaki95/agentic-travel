@@ -26,4 +26,4 @@ The application consists of several components:
 - **Frontend** (`frontend/`): Streamlit web application providing a user-friendly interface
 - **Data** (`data/`): Contains airport codes database for validation and lookup
 - **Scripts** (`scripts.py`): Utility scripts for running backend, frontend, and setting up MCP server
-- 
+  
