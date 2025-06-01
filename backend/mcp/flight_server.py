@@ -17,11 +17,6 @@ MCP_SERVER_PATH = Path(__file__).resolve()
 mcp = FastMCP("google-flights-mcp")
 
 
-class AgenticFlightData(FlightData):
-    direction: Optional[Literal["outbound", "return"]] = None
-    route_segment: Optional[str] = None
-
-
 async def _get_flight_result(flight_data_list, passengers, fare_type, loop) -> Result:
     """Helper to get flight results and handle errors with multiple fallback modes"""
 

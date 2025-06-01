@@ -1,15 +1,17 @@
-import re
-from typing import Optional
 import datetime
+import re
+
+# Import airport lookup functions
+import sys
+from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import streamlit as st
 from config import EXPECTED_MULTI_CITY_LEGS, PRICE_DECIMAL_PLACES, SUGGESTION_QUERIES
 
-# Import airport lookup functions
-import sys
-from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
+
 
 # Import the underlying function directly
 def get_airport_name_from_code(airport_code: str) -> str:
@@ -18,7 +20,7 @@ def get_airport_name_from_code(airport_code: str) -> str:
         # Load airport codes
         airport_codes_path = Path(__file__).parent.parent / "data" / "airport-codes.csv"
         all_codes = pd.read_csv(airport_codes_path)
-        
+
         matching_rows = all_codes[all_codes["iata_code"] == airport_code]
         if not matching_rows.empty:
             return matching_rows.iloc[0]["name"]
@@ -37,7 +39,6 @@ def extract_numeric_prices(prices: pd.Series) -> list[float]:
     return numeric_prices
 
 
-
 def get_flight_type_info(results: pd.DataFrame) -> tuple[bool, bool, int]:
     """Determine flight type characteristics from the results DataFrame."""
     has_outbound = (
@@ -48,9 +49,7 @@ def get_flight_type_info(results: pd.DataFrame) -> tuple[bool, bool, int]:
     )
     is_round_trip = has_outbound and has_return
 
-    unique_segments = (
-        results["route"].nunique() if "route" in results.columns else 1
-    )
+    unique_segments = results["route"].nunique() if "route" in results.columns else 1
     is_multi_city = unique_segments > 2 or (unique_segments == 2 and not is_round_trip)
 
     return is_round_trip, is_multi_city, unique_segments
@@ -235,24 +234,24 @@ def extract_airport_info(airport_code: str) -> str:
     try:
         if not airport_code or airport_code.strip() == "":
             return airport_code
-            
-        # Handle cases where it might already be formatted like "City (CODE)" 
+
+        # Handle cases where it might already be formatted like "City (CODE)"
         if "(" in airport_code and ")" in airport_code:
             return airport_code  # Already formatted
-            
+
         # Remove any extra text and get just the airport code
         code = airport_code.strip().upper()
-        
+
         # Extract 3-letter IATA code if embedded in longer string
-        iata_match = re.search(r'\b[A-Z]{3}\b', code)
+        iata_match = re.search(r"\b[A-Z]{3}\b", code)
         if iata_match:
             code = iata_match.group()
-        
+
         if len(code) == 3 and code.isalpha():  # Valid IATA code
             airport_name = get_airport_name_from_code(code)
             if airport_name:
                 return f"{airport_name} ({code})"
-        
+
         # If lookup fails or invalid code, return original
         return airport_code
     except Exception as e:
@@ -267,44 +266,46 @@ def extract_time_from_datetime(time_str: str) -> str:
         # Handle various time formats
         if not time_str or time_str == "-" or str(time_str).strip() == "":
             return time_str
-        
+
         time_str = str(time_str).strip()
-        
+
         # Handle format like "2:10 PM on Sun, Aug 10"
         if " on " in time_str.lower():
             time_part = time_str.split(" on ")[0].strip()
             time_str = time_part
-        
+
         # Convert AM/PM format to 24-hour format for proper sorting
-        if re.match(r'^\d{1,2}:\d{2}\s*(AM|PM)$', time_str, re.IGNORECASE):
+        if re.match(r"^\d{1,2}:\d{2}\s*(AM|PM)$", time_str, re.IGNORECASE):
             try:
                 import datetime
+
                 # Parse the AM/PM time and convert to 24-hour format
                 time_obj = datetime.datetime.strptime(time_str, "%I:%M %p")
                 return time_obj.strftime("%H:%M")
             except ValueError:
                 # If parsing fails, return original
                 return time_str
-        
+
         # If it's already in 24-hour format (HH:MM), return as is
-        if re.match(r'^\d{1,2}:\d{2}(:\d{2})?$', time_str):
+        if re.match(r"^\d{1,2}:\d{2}(:\d{2})?$", time_str):
             return time_str[:5]  # Return HH:MM format
-            
+
         # If it contains a space, likely datetime format like "2024-01-10 14:30:00"
         if " " in time_str:
             parts = time_str.split(" ")
             if len(parts) >= 2:
                 time_part = parts[1]  # Take second part as time
                 # Validate it looks like a time
-                if re.match(r'^\d{1,2}:\d{2}(:\d{2})?$', time_part):
+                if re.match(r"^\d{1,2}:\d{2}(:\d{2})?$", time_part):
                     return time_part[:5]  # Return HH:MM format
-        
+
         # If it looks like a date (YYYY-MM-DD), this might be a date column not time
-        if re.match(r'^\d{4}-\d{2}-\d{2}$', time_str):
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", time_str):
             return "-"  # Return dash for missing time
-            
+
         # Try to parse as datetime and extract time
         import datetime
+
         try:
             # Try various datetime formats
             for fmt in ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%H:%M:%S", "%H:%M"]:
@@ -315,10 +316,10 @@ def extract_time_from_datetime(time_str: str) -> str:
                     continue
         except:
             pass
-            
+
         # If all else fails, return original
         return time_str
-        
+
     except Exception as e:
         print(f"Error parsing time '{time_str}': {e}")
         return str(time_str)
@@ -347,14 +348,14 @@ def convert_price_for_sorting(price_str: str) -> float:
     try:
         if not price_str or price_str == "-" or str(price_str).strip() == "":
             return 0.0
-        
+
         price_str = str(price_str).strip()
-        
+
         # Extract numeric values from price strings using the existing function
         numbers = re.findall(r"\d+\.?\d*", price_str)
         if numbers:
             return float(numbers[0])
-        
+
         return 0.0
     except Exception:
         return 0.0
@@ -365,9 +366,9 @@ def get_currency_symbol(price_str: str) -> str:
     try:
         if not price_str or price_str == "-":
             return "£"  # Default to pounds
-        
+
         price_str = str(price_str).strip()
-        
+
         # Check for common currency symbols
         if "£" in price_str:
             return "£"
@@ -381,41 +382,55 @@ def get_currency_symbol(price_str: str) -> str:
         return "£"
 
 
-def display_flight_table(results_display: pd.DataFrame, show_date_in_header: bool = True) -> str:
+def display_flight_table(
+    results_display: pd.DataFrame, show_date_in_header: bool = True
+) -> str:
     """Display a flight table with consistent formatting."""
     if results_display.empty:
         st.warning("No flights to display.")
         return ""
 
     # Extract departure date for header
-    departure_date = get_departure_date_for_display(results_display) if show_date_in_header else ""
+    departure_date = (
+        get_departure_date_for_display(results_display) if show_date_in_header else ""
+    )
 
     # Create a copy to avoid modifying original
     results_to_show = results_display.copy()
-    
+
     # Transform origin and destination to show airport names
     if "origin" in results_to_show.columns:
-        results_to_show["from_display"] = results_to_show["origin"].apply(extract_airport_info)
-    
+        results_to_show["from_display"] = results_to_show["origin"].apply(
+            extract_airport_info
+        )
+
     if "destination" in results_to_show.columns:
-        results_to_show["to_display"] = results_to_show["destination"].apply(extract_airport_info)
-    
+        results_to_show["to_display"] = results_to_show["destination"].apply(
+            extract_airport_info
+        )
+
     # Clean up time fields
     if "departure_time" in results_to_show.columns:
-        results_to_show["departure_time_clean"] = results_to_show["departure_time"].apply(extract_time_from_datetime)
-    
+        results_to_show["departure_time_clean"] = results_to_show[
+            "departure_time"
+        ].apply(extract_time_from_datetime)
+
     if "arrival_time" in results_to_show.columns:
-        results_to_show["arrival_time_clean"] = results_to_show["arrival_time"].apply(extract_time_from_datetime)
+        results_to_show["arrival_time_clean"] = results_to_show["arrival_time"].apply(
+            extract_time_from_datetime
+        )
 
     # Convert price to numeric for proper sorting while keeping display format
     if "price" in results_to_show.columns:
         # Create a numeric price column for sorting
-        results_to_show["price_numeric"] = results_to_show["price"].apply(convert_price_for_sorting)
+        results_to_show["price_numeric"] = results_to_show["price"].apply(
+            convert_price_for_sorting
+        )
 
     # Define the new preferred column order
     preferred_columns = [
         "from_display",
-        "departure_time_clean", 
+        "departure_time_clean",
         "to_display",
         "arrival_time_clean",
         "duration",
@@ -431,39 +446,44 @@ def display_flight_table(results_display: pd.DataFrame, show_date_in_header: boo
 
     if available_columns:
         results_final = results_to_show[available_columns]
-        
+
         # Define column renames
         column_renames = {
             "from_display": "From",
             "departure_time_clean": "Departure Time",
-            "to_display": "To", 
+            "to_display": "To",
             "arrival_time_clean": "Arrival Time",
             "duration": "Duration",
             "price_numeric": "Price (£)",  # Show it's numeric and indicate currency
             "airline": "Airline",
             "stops": "Stops",
         }
-        
+
         results_final = results_final.rename(
             columns={
                 k: v for k, v in column_renames.items() if k in results_final.columns
             }
         )
-        
+
         # Format the numeric price column to show currency properly
         if "Price (£)" in results_final.columns:
             # Detect the actual currency from the original price data
-            if "price" in results_to_show.columns and not results_to_show["price"].empty:
+            if (
+                "price" in results_to_show.columns
+                and not results_to_show["price"].empty
+            ):
                 sample_price = results_to_show["price"].iloc[0]
                 currency_symbol = get_currency_symbol(sample_price)
-                
+
                 # Update column name to reflect actual currency
                 if currency_symbol != "£":
-                    results_final = results_final.rename(columns={"Price (£)": f"Price ({currency_symbol})"})
+                    results_final = results_final.rename(
+                        columns={"Price (£)": f"Price ({currency_symbol})"}
+                    )
                     column_name = f"Price ({currency_symbol})"
                 else:
                     column_name = "Price (£)"
-                
+
                 results_final[column_name] = results_final[column_name].apply(
                     lambda x: f"{currency_symbol}{x:.2f}" if x > 0 else "-"
                 )
@@ -471,7 +491,7 @@ def display_flight_table(results_display: pd.DataFrame, show_date_in_header: boo
                 results_final["Price (£)"] = results_final["Price (£)"].apply(
                     lambda x: f"£{x:.2f}" if x > 0 else "-"
                 )
-        
+
     else:
         results_final = results_to_show
 
@@ -522,7 +542,7 @@ def _display_round_trip_results(results: pd.DataFrame) -> None:
     # Display flight sections with dates in headers
     outbound_date = ""
     return_date = ""
-    
+
     if not outbound_flights.empty:
         outbound_date = get_departure_date_for_display(outbound_flights)
         header_text = "#### ✈️ Outbound Flights"
@@ -565,7 +585,7 @@ def _display_multi_city_segments(results: pd.DataFrame, unique_segments: int) ->
 
     for i, segment in enumerate(segments, 1):
         segment_flights = results[results["route"] == segment]
-        
+
         departure_date = get_departure_date_for_display(segment_flights)
         header_text = f"#### Leg {i}: {segment}"
         if departure_date:

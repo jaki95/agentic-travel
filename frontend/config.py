@@ -14,5 +14,5 @@ SUGGESTION_QUERIES = [
     "Flights from LCY to LIN 10/08/2025",
     "Round trip from SFO to LAX leaving on June 25 2025 and returning 5 days later",
     "Find flights from Charles de Gaulle to Miami on 2025-07-10",
-    "Multi-city: New York JFK to Paris Dec 15, Paris to Rome Dec 20, Rome to New York JFK Dec 25 2025",
+    "Multi-city: New York JFK to CDG Dec 15, Paris to Rome Dec 20, Rome to New York JFK Dec 25 2025",
 ]
