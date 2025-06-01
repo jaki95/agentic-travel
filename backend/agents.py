@@ -1,4 +1,5 @@
 from crewai import LLM, Agent, Task
+from crewai.tools import BaseTool
 
 from backend.models.flights import FlightSearchResults
 from backend.models.search import QueryBreakdown
@@ -52,7 +53,7 @@ def create_analysis_task(query: str, agent: Agent) -> Task:
     )
 
 
-def create_structured_flight_agent(llm: LLM, tools: list) -> Agent:
+def create_structured_flight_agent(llm: LLM, tools: list[BaseTool]) -> Agent:
     """Create a flight search agent that returns top 10 sorted structured flight results."""
     return Agent(
         role="Structured Flight Data Analyst",

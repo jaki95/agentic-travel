@@ -16,7 +16,7 @@ from backend.agents import (
     create_structured_flight_agent,
 )
 from backend.mcp.flight_server import MCP_SERVER_PATH
-from backend.models.flights import FlightDisplayRecord
+from backend.models.flights import FlightSearchResults
 from backend.models.search import QueryBreakdown
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ logger.setLevel(logging.INFO)
 class FlightSearchState(BaseModel):
     message: str = ""
     query_breakdown: Optional[QueryBreakdown] = None
-    search_results: Optional[list[FlightDisplayRecord]] = None
+    search_results: Optional[list[FlightSearchResults]] = None
 
 
 class FlightSearchFlow(Flow[FlightSearchState]):
@@ -66,6 +66,9 @@ class FlightSearchFlow(Flow[FlightSearchState]):
         server_params = self._create_mcp_server_params()
 
         with MCPServerAdapter(server_params) as tools:
+            for tool in tools:
+                tool.result_as_answer = True
+
             # Use the tools for flight search
             agent = create_structured_flight_agent(self.llm, tools)
             tasks = [
@@ -91,14 +94,11 @@ class FlightSearchFlow(Flow[FlightSearchState]):
                 logger.info(f"Search {i}/{len(results)} completed")
 
             # Extract FlightSearchResults objects from crew task outputs
-            flight_search_results = []
+            flight_search_results: list[FlightSearchResults] = []
             for result in results:
                 if result.tasks_output and len(result.tasks_output) > 0:
                     task_output = result.tasks_output[0]
-                    if hasattr(task_output, "pydantic") and task_output.pydantic:
-                        flight_search_results.append(task_output.pydantic)
-                    else:
-                        logger.warning("Task output missing pydantic result")
+                    flight_search_results.append(task_output.pydantic)
                 else:
                     logger.warning("No task outputs found in crew result")
 

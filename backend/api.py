@@ -53,7 +53,7 @@ async def search_flights(request: FlightSearchRequest):
         with ThreadPoolExecutor() as executor:
             state = await asyncio.get_event_loop().run_in_executor(executor, run_flow)
 
-        # Flatten FlightSearchResults objects to FlightDisplayRecord objects
+        # Flatten FlightSearchResults to Flight objects
         flight_records = []
         if state.search_results:
             for flight_search_result in state.search_results:
