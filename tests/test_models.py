@@ -235,9 +235,7 @@ class TestFlightSearchResponse:
 
     def test_flight_search_response_minimal(self):
         """Test creating minimal FlightSearchResponse."""
-        response = FlightSearchResponse(
-            results=[], success=True, duration_seconds=1.0
-        )
+        response = FlightSearchResponse(results=[], success=True, duration_seconds=1.0)
         assert response.results == []
         assert response.success is True
         assert response.summary is None

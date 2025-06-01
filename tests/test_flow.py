@@ -22,7 +22,7 @@ class TestFlightSearchState:
     ):
         """Test creating FlightSearchState with data."""
         flight_search_results = FlightSearchResults(flights=[sample_flight_record])
-        
+
         state = FlightSearchState(
             message="Processing query",
             query_breakdown=sample_query_breakdown,
@@ -51,12 +51,10 @@ class TestFlightSearchFlow:
         if "OPENAI_API_KEY" in os.environ:
             del os.environ["OPENAI_API_KEY"]
 
-
         with pytest.raises(
             ValueError, match="OPENAI_API_KEY environment variable is required"
         ):
             FlightSearchFlow("test query")
-
 
     def test_create_mcp_server_params(self):
         """Test MCP server parameters creation."""

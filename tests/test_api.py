@@ -130,7 +130,6 @@ class TestAPI:
         assert len(data["results"]) == 2
         assert "Found 2 flight options" in data["summary"]
 
-
     @patch("backend.api.FlightSearchFlow")
     def test_search_response_model_validation(
         self, mock_flow_class, test_client: TestClient, sample_flight_record
