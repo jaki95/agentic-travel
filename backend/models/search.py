@@ -17,6 +17,11 @@ class SearchQuery(BaseModel):
     return_date: str = Field(None, description="Return date if round trip")
     passengers: int = Field(default=1, description="Number of passengers")
     search_type: str = Field(default="one_way", description="one_way or round_trip")
+    direct_flights_only: bool = Field(
+        default=True, description="Whether to only search for direct flights"
+    )
+    max_stops: int = Field(default=0, description="Maximum number of stops")
+    fare_type: str = Field(default="economy", description="Fare type")
 
 
 class QueryBreakdown(BaseModel):
