@@ -1,18 +1,19 @@
 from pathlib import Path
+
+import yaml
 from crewai import LLM, Agent, Task
 from crewai.tools import BaseTool
-import yaml
 
 from backend.models.flights import FlightSearchResults
 from backend.models.search import QueryBreakdown
 from backend.tools import iata_code_to_name, name_to_iata_code
-
 
 with open(Path(__file__).parent / "config" / "agents.yaml", "r") as f:
     agents_config = yaml.safe_load(f)
 
 with open(Path(__file__).parent / "config" / "tasks.yaml", "r") as f:
     tasks_config = yaml.safe_load(f)
+
 
 def create_query_analyzer_agent(llm: LLM) -> Agent:
     """Create agent to analyze and break down travel queries."""
