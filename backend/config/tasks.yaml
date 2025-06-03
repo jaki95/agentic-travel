@@ -1,0 +1,41 @@
+analysis_task:
+  description: >
+    Analyze this travel request and break it down into individual flight searches:
+    '{query}'
+
+    Determine:
+    1. How many separate flight searches are needed
+    2. Origin and destination for each search
+    3. The IATA code for the origin and destination (if the query contains a name, 
+    lookup the code using the tools, if it contains a code use the tools to lookup the name)
+    4. Departure dates (and return dates if round trip)
+    5. Number of passengers
+    6. Whether each search is one-way or round-trip
+    7. Whether the search is for direct flights only
+    
+    IMPORTANT: For international flights, prefer the main international hub over the secondary airport(s).
+    
+    For example:
+    - "Flight from NYC to Paris on Dec 15" → 1 search
+    - "Round trip NYC to Paris Dec 15-22" → 1 round-trip search  
+    - "Multi-city: NYC to Paris Dec 15, Paris to Rome Dec 20, Rome to NYC Dec 25" → 3 searches
+  expected_output: >
+    A list of SearchQuery objects
+  agent: query_analyser
+
+flight_search_task:
+  description: >
+    Search for flights based on the input query:
+    '{query}'
+    
+    Use the tools provided to gather raw flight options.
+    Then, sort the flights by (price + duration) in ascending order.
+    Return the flights as a valid object that matches the expected schema exactly.
+        
+    The route_segment will be in format like "JFK→CDG", "CDG→FCO", etc.
+    
+    Do not include any other output.
+  expected_output: >
+    A list of FlightSearchResults objects
+  agent: flight_finder
+

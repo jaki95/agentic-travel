@@ -55,9 +55,9 @@ class FlightSearchFlow(Flow[FlightSearchState]):
     @start()
     def break_down_query(self):
         query_analyzer = create_query_analyzer_agent(self.llm)
-        analysis_task = create_analysis_task(self.query, query_analyzer)
+        analysis_task = create_analysis_task(query_analyzer)
         crew = Crew(agents=[query_analyzer], tasks=[analysis_task], verbose=True)
-        result = crew.kickoff()
+        result = crew.kickoff(inputs={"query": self.query})
         print(result.tasks_output[0].pydantic)
         self.state.query_breakdown = result.tasks_output[0].pydantic
 
